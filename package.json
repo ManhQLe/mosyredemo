@@ -4,8 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dev-server.js"
   },
   "author": "Manh Le",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "mosyrejs": "^1.1.6"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.0"
+  }
 }
