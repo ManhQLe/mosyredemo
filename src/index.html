@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Mosyre Demo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="public/css/app.css" />
+    <link rel="stylesheet" type="text/css" media="screen" href="public/css/app.css" />    
     <link rel="stylesheet" type="text/css" media="screen" href="public/lib/kendoui/css/kendo.common-material.min.css" />
     <link rel="stylesheet" type="text/css" media="screen" href="public/lib/kendoui/css/kendo.material.min.css" />
 
@@ -16,9 +16,32 @@
 <body>
     <input type="date" id="date1" placeholder="Start Date"/>
 
-    <script>
-        $("#date1").kendoDatePicker();
-        
+    <script>        
+        const {RClay,Conduit} = mosyrejs;
+
+        var clay1 = new RClay({
+            init:(clay)=>{     
+                let center = clay.getCenter();                    
+                clay.dateControl = $("#date1").kendoDatePicker({
+                    change:(e)=>{
+                        center.O = clay.dateControl.value();
+                    }
+                }).data("kendoDatePicker");
+
+            },
+            response:(center)=>{
+                console.log(this.dateControl)
+            },            
+        })
+
+        var log = new RClay({
+            connectPoints:["I"],
+            response:(center)=>{
+                console.log(center.I);
+            }
+        })
+
+        Conduit.link(log,"I","O",clay1)
     </script>
 </body>
 </html>
