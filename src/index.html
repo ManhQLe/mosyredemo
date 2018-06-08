@@ -16,15 +16,39 @@
 <body>
     <input type="date" id="date1" placeholder="Start Date"/>
 
+    <input type="date" id="date2" placeholder="End Date"/>
+    <button id="primaryTextButton">Primary Button</button>
     <script>        
         const {RClay,Conduit} = mosyrejs;
+      
 
-        var clay1 = new RClay({
+        var buttonClay = new RClay({
+            connectPoints:["I"],
+            init:(clay)=>{                
+                clay.button = $("#primaryTextButton").kendoButton().data("kendoButton");
+            },
+            response:function(center){
+                this.button.enable(center.I?true:false);
+            }
+
+        })
+
+        var dateClay = new RClay({
             init:(clay)=>{     
                 let center = clay.getCenter();                    
-                clay.dateControl = $("#date1").kendoDatePicker({
+                $("#date1").kendoDatePicker({
                     change:(e)=>{
-                        center.O = clay.dateControl.value();
+                        center.D1 = {
+                            "StartDate": e.sender.value()
+                        }
+                    }
+                }).data("kendoDatePicker");
+
+                $("#date2").kendoDatePicker({
+                    change:(e)=>{
+                        center.D2 = {
+                            "EndDate": e.sender.value()
+                        }                                                
                     }
                 }).data("kendoDatePicker");
 
@@ -34,14 +58,38 @@
             },            
         })
 
+        var validator = new RClay({
+            connectPoints:["DATA"],
+            init:function(){
+                this.data = {};
+            },
+            response:function(center){
+                let data = this.data = Object.assign(this.data,center.DATA)                
+
+                center.BUTTON = data.StartDate && data.EndDate && data.StartDate.getTime() <=data.EndDate.getTime()
+                
+            },
+
+        })
+        
         var log = new RClay({
             connectPoints:["I"],
             response:(center)=>{
                 console.log(center.I);
             }
         })
+        
+        var beginClay = new RClay()
+        beginClay.start = function(){
+            var center = this.getCenter();        
+            center.O = {};
+        }
 
-        Conduit.link(log,"I","O",clay1)
+        Conduit.createLink(log,"I",dateClay,"D1",dateClay,"D2",validator,"DATA",beginClay,"O");
+        Conduit.createLink(validator,"BUTTON",buttonClay,"I");                
+
+
+        beginClay.start();
     </script>
 </body>
 </html>
