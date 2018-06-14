@@ -1,32 +1,154 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Demo 2</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="public/css/app.css" />    
+    <link rel="stylesheet" type="text/css" media="screen" href="public/css/app.css" />
     <link rel="stylesheet" type="text/css" media="screen" href="public/lib/kendoui/css/kendo.common-material.min.css" />
     <link rel="stylesheet" type="text/css" media="screen" href="public/lib/kendoui/css/kendo.material.min.css" />
 
     <script src="public/js/mosyrejs.min.js"></script>
     <script src="public/lib/kendoui/js/jquery.min.js"></script>
     <script src="public/lib/kendoui/js/kendo.all.min.js"></script>
-    
+    <style type="text/css">
+        label {
+            display: block;
+            padding-bottom: .3em;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 12px;
+            color: #444;
+        }
+
+        .form1>li {
+            margin-bottom: .3em;
+        }
+    </style>
 </head>
-<body>    
-    <input id="FirstName" />
-    <input id="LastName"/>
 
-
+<body>
+    <ul class="form1">
+        <li>
+            <label for="FirstName" class="required">First Name</label>
+            <input id="FirstName" class="k-textbox" />
+        </li>
+        <li>
+            <label for="LastName">Last Name</label>
+            <input id="LastName" class="k-textbox" />
+        </li>
+        <li>
+            <label>Full Name</label>
+            <input id="FullName" class="k-textbox" disabled />
+        </li>
+        <li>
+            <label for="Time">Start time</label>
+            <select id="Time" required style="width: 220px;">
+                <option>14:00</option>
+                <option>15:30</option>
+                <option>17:00</option>
+                <option>20:15</option>
+            </select>
+            <span class="k-invalid-msg" data-for="time"></span>
+        </li>
+        <li>
+            <button id="OK">OK</button>
+        </li>
+    </ul>
 
     <script>
-        const mosyrejs = window.mosyrejs;
+        const googleKey = "AIzaSyBJzR_tmqv5ys3IpgnSuRmGxRRwC1q8mFE"
+        const googleUrl = "https://www.googleapis.com/customsearch/v1"
+        const amcSearch = "001012393745958497419:pa9wgbff8co"
 
-        let albumUrl = "http://jsonplaceholder.typicode.com/albums"
-        class textBoxClay extends 
+        function getSearchUrl(searchKey) {
+            return `${googleUrl}?key=${googleKey}&q=${searchKey}&cx=${amcSearch}`
+        }
+
+        const {
+            RClay,
+            Conduit
+        } = window.mosyrejs;
+
+        class TextBoxClay extends RClay {
+            constructor(agg) {
+                super(agg)
+            }
+
+            onInit() {
+                let agg = this.getAgreement();
+                let center = this.getCenter();
+                let control = $(agg.controlId)
+                control.on("input", () => {
+                    let o = {}
+                    o[agg.fieldName] = control.val();
+                    center.VALUE = o;
+                    return true;
+                })
+
+                $("#Time").kendoDropDownList({
+                    change: (e) => {
+                        center.VALUE = {
+                            "Time": e.sender.value()
+                        }
+                    },
+                });
+            }
+        }
+
+        let firstName = new TextBoxClay({
+            controlId: "#FirstName",
+            fieldName: "FirstName"
+        })
+
+        let lastName = new TextBoxClay({
+            controlId: "#LastName",
+            fieldName: "LastName"
+        })
+
+        let fullName = new RClay({
+            connectPoints: ["IN"],
+            response: (center, clay) => {
+                let agg = clay.getAgreement();
+                let data = center.IN;
+                
+                if (data.FirstName!==undefined && data.LastName!==undefined) {
+                    agg.control.val(data.FirstName + " " + data.LastName)
+                }
+            },
+            init: (clay) => {
+                let agg = clay.getAgreement();
+                agg.control = $("#FullName");
+            }
+        })
 
 
+
+        let validation = new RClay({
+            connectPoints: ["DATAIN"],
+            response: (center, clay) => {
+
+            }
+        })
+
+        let merge = new RClay({
+            connectPoints: ["IN"],
+            response: (center, clay) => {
+                let agg = clay.getAgreement;
+                let data = agg.data || {};
+
+                data = Object.assign(data, center.IN);
+                //console.log(data)           
+                agg.data = data;
+                center.OUT = data;
+            }
+        })
+
+        Conduit.createLink(firstName, "VALUE", lastName, "VALUE", merge, "IN");
+        Conduit.createLink(fullName, "IN", merge, "OUT")
     </script>
 </body>
+
 </html>
