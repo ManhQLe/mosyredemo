@@ -27,8 +27,8 @@
             margin-bottom: .3em;
         }
 
-        .form1 .error-border {
-            border-color: #ED4C67
+        .myname {
+            color: #ED4C67
         }
     </style>
 </head>
@@ -52,6 +52,11 @@
         </li>
     </ul>
 
+    <ul class="form2">
+        <li>
+            <span id="IsItMyName" class="myname"></span>
+        </li>
+    </ul>
     <script>
         const googleKey = "AIzaSyBJzR_tmqv5ys3IpgnSuRmGxRRwC1q8mFE"
         const googleUrl = "https://www.googleapis.com/customsearch/v1"
@@ -137,6 +142,14 @@
             }
         })
 
+        let isMyNameClay = new RClay({
+            connectPoints:["IN"],
+            response:(center)=>{
+                let data = center.IN;
+                let yes = data.FirstName === "Manh" && data.LastName === "Le"
+                $("#IsItMyName").text(yes?"That is my name":"Need to make some wiser guess :)")
+            }
+        })
 
 
         let validation = new RClay({
@@ -148,7 +161,7 @@
                     if (!f.isButton) {
                         isValid &= f.isValid(data[f.fieldName])
                     }
-                })
+                })                
                 center.VALIDATION = isValid;
             }
         })
@@ -168,7 +181,7 @@
 
         Conduit.createLink(formClay, "VALUE", merge, "IN");
         Conduit.createLink(validation, "VALIDATION", formClay, "FEEDBACK");
-        Conduit.createLink(fullName, "IN", merge, "OUT", validation, "DATAIN")
+        Conduit.createLink(fullName, "IN", merge, "OUT", validation, "DATAIN",isMyNameClay,"IN")
     </script>
 </body>
 
