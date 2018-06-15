@@ -26,6 +26,10 @@
         .form1>li {
             margin-bottom: .3em;
         }
+
+        .form1 .error-border {
+            border-color: #ED4C67
+        }
     </style>
 </head>
 
@@ -44,16 +48,6 @@
             <input id="FullName" class="k-textbox" disabled />
         </li>
         <li>
-            <label for="Time">Start time</label>
-            <select id="Time" required style="width: 220px;">
-                <option>14:00</option>
-                <option>15:30</option>
-                <option>17:00</option>
-                <option>20:15</option>
-            </select>
-            <span class="k-invalid-msg" data-for="time"></span>
-        </li>
-        <li>
             <button id="OK">OK</button>
         </li>
     </ul>
@@ -62,6 +56,32 @@
         const googleKey = "AIzaSyBJzR_tmqv5ys3IpgnSuRmGxRRwC1q8mFE"
         const googleUrl = "https://www.googleapis.com/customsearch/v1"
         const amcSearch = "001012393745958497419:pa9wgbff8co"
+        let fields = [{
+                fieldName: "FirstName",
+                jcontrol: $("#FirstName"),
+                isValid: function (val) {
+                    return val !== null && val !== undefined && val !== "";
+                }
+            },
+
+            {
+                fieldName: "LastName",
+                jcontrol: $("#LastName"),
+                isValid: function (val) {
+                    return val !== null && val !== undefined && val !== "";
+                }
+            },
+            {
+                fieldName: "OK",
+                isButton: true,
+                control: $("#OK").kendoButton().data("kendoButton"),
+                jcontrol: $("#OK")
+            }
+        ];
+
+        function findFieldByName(fn) {
+            return fields.find(f => f.fieldName === fn);
+        }
 
         function getSearchUrl(searchKey) {
             return `${googleUrl}?key=${googleKey}&q=${searchKey}&cx=${amcSearch}`
@@ -72,40 +92,33 @@
             Conduit
         } = window.mosyrejs;
 
-        class TextBoxClay extends RClay {
-            constructor(agg) {
-                super(agg)
-            }
+        const formClay = new RClay({
+            connectPoints: ["FEEDBACK"],
+            response(center, clay) {
+                let isValid = center.FEEDBACK;
 
-            onInit() {
-                let agg = this.getAgreement();
-                let center = this.getCenter();
-                let control = $(agg.controlId)
-                control.on("input", () => {
-                    let o = {}
-                    o[agg.fieldName] = control.val();
-                    center.VALUE = o;
-                    return true;
+                findFieldByName("OK").control.enable(isValid);
+            },
+            init: (clay) => {
+
+                let agg = clay.getAgreement();
+                let center = clay.getCenter();
+
+
+                findFieldByName("FirstName").jcontrol.on("input", function (e) {
+                    center.VALUE = {
+                        "FirstName": $(this).val()
+                    }
                 })
 
-                $("#Time").kendoDropDownList({
-                    change: (e) => {
-                        center.VALUE = {
-                            "Time": e.sender.value()
-                        }
-                    },
-                });
+                findFieldByName("LastName").jcontrol.on("input", function (e) {
+                    center.VALUE = {
+                        "LastName": $(this).val()
+                    }
+                })
+
+
             }
-        }
-
-        let firstName = new TextBoxClay({
-            controlId: "#FirstName",
-            fieldName: "FirstName"
-        })
-
-        let lastName = new TextBoxClay({
-            controlId: "#LastName",
-            fieldName: "LastName"
         })
 
         let fullName = new RClay({
@@ -113,8 +126,8 @@
             response: (center, clay) => {
                 let agg = clay.getAgreement();
                 let data = center.IN;
-                
-                if (data.FirstName!==undefined && data.LastName!==undefined) {
+
+                if (data.FirstName !== undefined && data.LastName !== undefined) {
                     agg.control.val(data.FirstName + " " + data.LastName)
                 }
             },
@@ -129,7 +142,14 @@
         let validation = new RClay({
             connectPoints: ["DATAIN"],
             response: (center, clay) => {
-
+                let data = center.DATAIN;
+                let isValid = true;
+                fields.forEach(f => {
+                    if (!f.isButton) {
+                        isValid &= f.isValid(data[f.fieldName])
+                    }
+                })
+                center.VALIDATION = isValid;
             }
         })
 
@@ -140,14 +160,15 @@
                 let data = agg.data || {};
 
                 data = Object.assign(data, center.IN);
-                //console.log(data)           
+
                 agg.data = data;
                 center.OUT = data;
             }
         })
 
-        Conduit.createLink(firstName, "VALUE", lastName, "VALUE", merge, "IN");
-        Conduit.createLink(fullName, "IN", merge, "OUT")
+        Conduit.createLink(formClay, "VALUE", merge, "IN");
+        Conduit.createLink(validation, "VALIDATION", formClay, "FEEDBACK");
+        Conduit.createLink(fullName, "IN", merge, "OUT", validation, "DATAIN")
     </script>
 </body>
 
